@@ -32,6 +32,15 @@ inline bool is_valid(WeightRange weight_range) {
   return true;
 }
 
+inline void output_duration(std::string const &desc, double start, double end,
+                            bool do_output) {
+  if (!do_output) {
+    return;
+  }
+  std::cerr << std::left << std::setw(25) << desc << ":\t" << std::setw(10)
+            << (end - start) << " seconds" << std::endl;
+}
+
 namespace internal {
 using small_edge_t = std::pair<std::uint32_t, std::uint32_t>;
 
@@ -52,11 +61,12 @@ inline std::vector<small_edge_t> generate_small_edge_list(kagen::Graph graph) {
 
 inline std::vector<std::int32_t>
 generate_edge_weighs(std::span<small_edge_t const> edgelist,
-                     WeightRange weight_range) {
+                     WeightRange weight_range, bool verbose) {
   std::mt19937 gen;
   std::uniform_int_distribution<std::int32_t> weight_dist(
       weight_range.first, weight_range.second - 1);
   std::int32_t const undefined = -1;
+  const double t0 = MPI_Wtime();
   std::vector<std::int32_t> weights(edgelist.size(), undefined);
   for (std::uint64_t index = 0; index < edgelist.size(); ++index) {
     const auto [u, v] = edgelist[index];
@@ -64,6 +74,9 @@ generate_edge_weighs(std::span<small_edge_t const> edgelist,
       weights[index] = weight_dist(gen);
     }
   }
+  const double t1 = MPI_Wtime();
+  output_duration("|-- canoncial weight gen", t0, t1,
+                  verbose);
   for (std::uint64_t index = 0; index < edgelist.size(); ++index) {
     const auto [u, v] = edgelist[index];
     if (u > v) {
@@ -77,6 +90,8 @@ generate_edge_weighs(std::span<small_edge_t const> edgelist,
       weights[index] = weights[static_cast<std::uint64_t>(diff)];
     }
   }
+  const double t2 = MPI_Wtime();
+  output_duration("|-- weight lookup", t1, t2, verbose);
   return weights;
 }
 
@@ -104,14 +119,7 @@ inline WeightedCSR generate_csr(std::uint64_t num_vertices,
 
 } // namespace internal
 //
-inline void output_duration(std::string const &desc, double start, double end,
-                            bool do_output) {
-  if (!do_output) {
-    return;
-  }
-  std::cerr << std::setw(20) << desc << ":\t" << std::setw(10) << (end - start)
-            << " seconds" << std::endl;
-}
+
 inline WeightedCSR generate_weighted_csr_graph(kagen::Graph graph,
                                                WeightRange weight_range,
                                                bool verbose = false) {
@@ -123,7 +131,8 @@ inline WeightedCSR generate_weighted_csr_graph(kagen::Graph graph,
   ips4o::parallel::sort(edgelist.begin(), edgelist.end());
   double t2 = MPI_Wtime();
   output_duration("edgelist sorting", t1, t2, verbose);
-  auto weights = internal::generate_edge_weighs(edgelist, weight_range);
+  auto weights =
+      internal::generate_edge_weighs(edgelist, weight_range, verbose);
   double t3 = MPI_Wtime();
   output_duration("weight generation", t2, t3, verbose);
   auto csr = internal::generate_csr(num_vertices, edgelist, std::move(weights));
