@@ -1,0 +1,49 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 19,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "Development (Debug)",
+      "description": "Configure for local development (Debug, compiler debug info).",
+      "binaryDir": "${sourceDir}/build/dev",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_STANDARD": "23",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Configure optimized release build.",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+	"IPS4O_USE_OPENMP": true,
+	"IPS4O_USE_MCX16": true,
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_STANDARD": "23",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "dev",
+      "displayName": "Build (dev)",
+      "description": "Build the development preset (Debug).",
+      "configurePreset": "dev"
+    },
+    {
+      "name": "release",
+      "displayName": "Build (release)",
+      "description": "Build the release preset.",
+      "configurePreset": "release"
+    }
+  ]
+}
