@@ -75,8 +75,9 @@ generate_edge_weighs(std::span<small_edge_t const> edgelist,
     }
   }
   const double t1 = MPI_Wtime();
-  output_duration("|-- canoncial weight gen", t0, t1,
-                  verbose);
+  output_duration("|-- canoncial weight gen", t0, t1, verbose);
+
+#pragma omp parallel for
   for (std::uint64_t index = 0; index < edgelist.size(); ++index) {
     const auto [u, v] = edgelist[index];
     if (u > v) {
