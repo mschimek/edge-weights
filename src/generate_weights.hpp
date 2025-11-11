@@ -101,6 +101,9 @@ inline WeightedCSR generate_csr(std::uint64_t num_vertices,
   }
   return csr;
 }
+
+} // namespace internal
+//
 inline void output_duration(std::string const &desc, double start, double end,
                             bool do_output) {
   if (!do_output) {
@@ -109,8 +112,6 @@ inline void output_duration(std::string const &desc, double start, double end,
   std::cerr << std::setw(20) << desc << ":\t" << std::setw(10) << (end - start)
             << " seconds" << std::endl;
 }
-} // namespace internal
-
 inline WeightedCSR generate_weighted_csr_graph(kagen::Graph graph,
                                                WeightRange weight_range,
                                                bool verbose = false) {
@@ -118,16 +119,16 @@ inline WeightedCSR generate_weighted_csr_graph(kagen::Graph graph,
   double t0 = MPI_Wtime();
   auto edgelist = internal::generate_small_edge_list(std::move(graph));
   double t1 = MPI_Wtime();
-  internal::output_duration("edgelist generation", t0, t1, verbose);
+  output_duration("edgelist generation", t0, t1, verbose);
   ips4o::parallel::sort(edgelist.begin(), edgelist.end());
   double t2 = MPI_Wtime();
-  internal::output_duration("edgelist sorting", t1, t2, verbose);
+  output_duration("edgelist sorting", t1, t2, verbose);
   auto weights = internal::generate_edge_weighs(edgelist, weight_range);
   double t3 = MPI_Wtime();
-  internal::output_duration("weight generation", t2, t3, verbose);
+  output_duration("weight generation", t2, t3, verbose);
   auto csr = internal::generate_csr(num_vertices, edgelist, std::move(weights));
   double t4 = MPI_Wtime();
-  internal::output_duration("csr generation", t3, t4, verbose);
+  output_duration("csr generation", t3, t4, verbose);
   return csr;
 }
 } // namespace gratr

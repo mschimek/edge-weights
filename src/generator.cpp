@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
   app.add_option("--weight-range-end", weight_range.second,
                  "End of weight range (exclusive).");
   CLI11_PARSE_MPI(app, argc, argv);
-  if(!gratr::is_valid(weight_range)) {
+  if (!gratr::is_valid(weight_range)) {
     throw std::invalid_argument("invalid weight range");
   }
 
@@ -55,7 +55,10 @@ int main(int argc, char *argv[]) {
   kagen::KaGen generator(MPI_COMM_WORLD);
   generator.UseCSRRepresentation();
   generator.EnableBasicStatistics();
+  double load_start = MPI_Wtime();
   auto graph = generator.GenerateFromOptionString(option_string);
+  double load_end = MPI_Wtime();
+  gratr::output_duration("load from disk", load_start, load_end, true);
   kagen::OutputGraphConfig config;
   config.filename = output_file;
   kagen::GraphInfo info(graph, MPI_COMM_WORLD);
@@ -67,6 +70,9 @@ int main(int argc, char *argv[]) {
     return writer.WriteFromCSR<std::uint32_t, std::int32_t, std::int32_t>(
         round, config.filename, xadj, adjncy, nullptr, &weights);
   };
+  double write_start = MPI_Wtime();
   write_graph(write, 0, 1);
+  double write_end = MPI_Wtime();
+  gratr::output_duration("write to disk", write_start, write_end, true);
   MPI_Finalize();
 }
