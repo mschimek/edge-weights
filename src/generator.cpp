@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   kagen::KaGen generator(MPI_COMM_WORLD);
   generator.UseCSRRepresentation();
+  generator.EnableBasicStatistics();
   auto graph = generator.GenerateFromOptionString(option_string);
   kagen::OutputGraphConfig config;
   config.filename = output_file;
