@@ -96,6 +96,28 @@ generate_edge_weighs(std::span<small_edge_t const> edgelist,
   return weights;
 }
 
+inline bool validate_back_edges(std::span<small_edge_t const> edgelist,
+                                std::span<std::int32_t> weights) {
+
+  bool backweights_ok = true;
+#pragma omp parallel for reduction(&& : backweights_ok)
+  for (std::uint64_t index = 0; index < edgelist.size(); ++index) {
+    const auto [u, v] = edgelist[index];
+    const auto weight = weights[index];
+    auto flipped_edge = std::make_pair(v, u);
+    auto it = std::lower_bound(edgelist.begin(), edgelist.end(), flipped_edge);
+    if (it == edgelist.end() || *it != flipped_edge) {
+      throw std::runtime_error("flipped edge not found");
+    }
+    std::int64_t diff = std::distance(edgelist.begin(), it);
+    const auto back_weight = weights[static_cast<std::uint64_t>(diff)];
+    if (weight != back_weight) {
+      backweights_ok = false;
+    }
+  }
+  return backweights_ok;
+}
+
 inline WeightedCSR generate_csr(std::uint64_t num_vertices,
                                 std::span<small_edge_t> edgelist,
                                 std::vector<std::int32_t> weights) {
@@ -136,9 +158,14 @@ inline WeightedCSR generate_weighted_csr_graph(kagen::Graph graph,
       internal::generate_edge_weighs(edgelist, weight_range, verbose);
   double t3 = MPI_Wtime();
   output_duration("weight generation", t2, t3, verbose);
-  auto csr = internal::generate_csr(num_vertices, edgelist, std::move(weights));
+  if (!internal::validate_back_edges(edgelist, weights)) {
+    throw std::runtime_error("incorrect backweights");
+  }
   double t4 = MPI_Wtime();
-  output_duration("csr generation", t3, t4, verbose);
+  output_duration("weight validation", t3, t4, verbose);
+  auto csr = internal::generate_csr(num_vertices, edgelist, std::move(weights));
+  double t5 = MPI_Wtime();
+  output_duration("csr generation", t4, t5, verbose);
   return csr;
 }
 } // namespace gratr

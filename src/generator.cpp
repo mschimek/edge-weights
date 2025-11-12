@@ -18,6 +18,7 @@ template <typename Write> void write_graph(Write &&write, int rank, int size) {
   bool continue_write = false;
   int round = 0;
   do {
+    std::cout << "started round " << round << std::endl;
     for (int i = 0; i < size; ++i) {
       if (i == rank) {
         continue_write = write(round);
@@ -25,6 +26,7 @@ template <typename Write> void write_graph(Write &&write, int rank, int size) {
       MPI_Barrier(MPI_COMM_WORLD);
     }
     MPI_Barrier(MPI_COMM_WORLD);
+    std::cout << "finished round " << round << std::endl;
     ++round;
   } while (continue_write);
 }
@@ -61,7 +63,10 @@ int main(int argc, char *argv[]) {
   gratr::output_duration("load from disk", load_start, load_end, true);
   kagen::OutputGraphConfig config;
   config.filename = output_file;
+  config.adjwgt_width = 32;
+  config.vtx_width = 32;
   kagen::GraphInfo info(graph, MPI_COMM_WORLD);
+  info.has_edge_weights = true;
   kagen::ParhipWriter writer(config, graph, info, rank, size);
   auto [xadj, adjncy, weights] =
       gratr::generate_weighted_csr_graph(std::move(graph), weight_range, true);
